@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 import pymysql
+from datetime import datetime
 
+
+# 1. CREATE DATABASE ESTABLISH CONNECTION WITH MYSQL
 # Connection parameters
 connection_parameters = {
     'host': "localhost",
@@ -57,4 +60,51 @@ cursor.execute('''
     ''')
 
 conn.commit()
-conn.close()
+
+
+
+# 2. Define Functions for Asset Management
+
+
+def get_connection():
+    return pymysql.connect(**connection_parameters)
+
+def add_license(license_data):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('''
+                INSERT INTO Licenses (license_key, software_name, license_type, purchase_date, expiration_date, num_seats, license_cost, vendor_info, associated_contracts)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', license_data)
+        conn.commit()
+    finally:
+        conn.close()
+
+def assign_license(license_id, user_id):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('''
+                INSERT INTO LicenseAssignments (license_id, user_id, assignment_date)
+                VALUES (%s, %s, %s)
+            ''', (license_id, user_id, datetime.now().date()))
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_expiring_licenses():
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            today = datetime.now().date()
+            cursor.execute('''
+                SELECT * FROM Licenses
+                WHERE expiration_date < %s
+            ''', (today,))
+            expiring_licenses = cursor.fetchall()
+    finally:
+        conn.close()
+    
+    return expiring_licenses
+
