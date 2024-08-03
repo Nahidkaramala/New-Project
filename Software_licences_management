@@ -1,0 +1,60 @@
+import streamlit as st
+import pandas as pd
+import mysql.connector
+import pymysql
+
+# Connection parameters
+connection_parameters = {
+    'host': "localhost",
+    'user': "root",
+    'password': "Nahid123"
+    # 'database': 'software_licenses'
+}
+
+# Establishing the connection
+conn = pymysql.connect(**connection_parameters)
+cursor = conn.cursor()
+
+# Creating the database
+db = "CREATE DATABASE IF NOT EXISTS software_licenses"
+cursor.execute(db)
+cursor.execute("USE software_licenses")
+
+
+
+# Create tables
+cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Licenses (
+            license_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            license_key TEXT UNIQUE,
+            software_name TEXT,
+            license_type TEXT,
+            purchase_date DATE,
+            expiration_date DATE,
+            num_seats INTEGER,
+            license_cost REAL,
+            vendor_info TEXT,
+            associated_contracts TEXT
+        )
+    ''')
+cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            role TEXT
+        )
+    ''')
+
+cursor.execute('''
+        CREATE TABLE IF NOT EXISTS LicenseAssignments (
+            assignment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            license_id INTEGER,
+            user_id INTEGER,
+            assignment_date DATE,
+            FOREIGN KEY(license_id) REFERENCES Licenses(license_id),
+            FOREIGN KEY(user_id) REFERENCES Users(user_id)
+        )
+    ''')
+
+conn.commit()
+conn.close()
