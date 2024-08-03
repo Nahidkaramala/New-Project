@@ -1,70 +1,121 @@
-import streamlit as st
-import pandas as pd
-import mysql.connector
 import pymysql
 from datetime import datetime
+from PIL import Image
+import streamlit as st
 
+# 1. CREATE DATABASE AND ESTABLISH CONNECTION WITH MYSQL
 
-# 1. CREATE DATABASE ESTABLISH CONNECTION WITH MYSQL
 # Connection parameters
 connection_parameters = {
     'host': "localhost",
     'user': "root",
-    'password': "Nahid123"
-    # 'database': 'software_licenses'
+    'password': "Nahid123",
+    'database': 'software_licenses'
 }
 
 # Establishing the connection
 conn = pymysql.connect(**connection_parameters)
 cursor = conn.cursor()
 
-# Creating the database
-db = "CREATE DATABASE IF NOT EXISTS software_licenses"
-cursor.execute(db)
+# Creating the database if it does not exist
+cursor.execute("CREATE DATABASE IF NOT EXISTS software_licenses")
 cursor.execute("USE software_licenses")
-
-
 
 # Create tables
 cursor.execute('''
-        CREATE TABLE IF NOT EXISTS Licenses (
-            license_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            license_key TEXT UNIQUE,
-            software_name TEXT,
-            license_type TEXT,
-            purchase_date DATE,
-            expiration_date DATE,
-            num_seats INTEGER,
-            license_cost REAL,
-            vendor_info TEXT,
-            associated_contracts TEXT
-        )
-    ''')
-cursor.execute('''
-        CREATE TABLE IF NOT EXISTS Users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            role TEXT
-        )
-    ''')
+    CREATE TABLE IF NOT EXISTS Licenses (
+        license_id INT AUTO_INCREMENT PRIMARY KEY,
+        license_key VARCHAR(255) UNIQUE,
+        software_name VARCHAR(255),
+        license_type VARCHAR(50),
+        purchase_date DATE,
+        expiration_date DATE,
+        num_seats INT,
+        license_cost DECIMAL(10, 2),
+        vendor_info TEXT,
+        associated_contracts TEXT
+    )
+''')
 
 cursor.execute('''
-        CREATE TABLE IF NOT EXISTS LicenseAssignments (
-            assignment_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            license_id INTEGER,
-            user_id INTEGER,
-            assignment_date DATE,
-            FOREIGN KEY(license_id) REFERENCES Licenses(license_id),
-            FOREIGN KEY(user_id) REFERENCES Users(user_id)
-        )
-    ''')
+    CREATE TABLE IF NOT EXISTS Users (
+        user_id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) UNIQUE,
+        role VARCHAR(50)
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS LicenseAssignments (
+        assignment_id INT AUTO_INCREMENT PRIMARY KEY,
+        license_id INT,
+        user_id INT,
+        assignment_date DATE,
+        FOREIGN KEY (license_id) REFERENCES Licenses(license_id),
+        FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    )
+''')
 
 conn.commit()
+conn.close()
 
+# Add dummy data
+def insert_dummy_data():
+    conn = pymysql.connect(**connection_parameters)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT IGNORE INTO Licenses (license_key, software_name, license_type, purchase_date, expiration_date, num_seats, license_cost, vendor_info, associated_contracts)
+            VALUES
+            ('LIC-001', 'Adobe Photoshop', 'Single-user', '2023-01-15', '2024-01-15', 1, 239.99, 'Adobe Inc.', 'Contract-12345'),
+            ('LIC-002', 'Microsoft Office 365', 'Subscription', '2023-06-01', '2024-06-01', 10, 999.99, 'Microsoft Corp.', 'Contract-67890'),
+            ('LIC-003', 'Slack', 'Multi-user', '2023-03-20', '2024-03-20', 50, 849.00, 'Slack Technologies', 'Contract-11223'),
+            ('LIC-004', 'Zoom Pro', 'Subscription', '2023-08-10', '2024-08-10', 25, 149.90, 'Zoom Video Communications', 'Contract-44556'),
+            ('LIC-005', 'AutoCAD', 'Single-user', '2023-04-05', '2024-04-05', 1, 189.00, 'Autodesk Inc.', 'Contract-77889'),
+            ('LIC-006', 'Jira Software', 'Subscription', '2023-02-25', '2024-02-25', 15, 899.00, 'Atlassian', 'Contract-33445'),
+            ('LIC-007', 'SPSS Statistics', 'Single-user', '2023-05-15', '2024-05-15', 1, 550.00, 'IBM Corp.', 'Contract-55667'),
+            ('LIC-008', 'GitHub Pro', 'Subscription', '2023-07-20', '2024-07-20', 20, 84.00, 'GitHub Inc.', 'Contract-99887'),
+            ('LIC-009', 'Salesforce CRM', 'Subscription', '2023-09-01', '2024-09-01', 30, 1200.00, 'Salesforce.com', 'Contract-66554'),
+            ('LIC-010', 'Tableau Desktop', 'Single-user', '2023-11-01', '2024-11-01', 1, 700.00, 'Tableau Software', 'Contract-44332')
+        ''')
+        
+        cursor.execute('''
+            INSERT IGNORE INTO Users (username, role)
+            VALUES
+            ('Nahid', 'Administrator'),
+            ('Aahid', 'Manager'),
+            ('David', 'Regular User'),
+            ('Kristen', 'Support Staff'),
+            ('Bella', 'Manager'),
+            ('Nabi', 'Regular User'),
+            ('Ravi', 'Administrator'),
+            ('Max', 'Support Staff'),
+            ('Ishwar', 'Regular User'),
+            ('Jack', 'Manager')
+        ''')
+        
+        cursor.execute('''
+            INSERT IGNORE INTO LicenseAssignments (license_id, user_id, assignment_date)
+            VALUES
+            (1, 3, '2023-01-20'),
+            (2, 2, '2023-06-05'),
+            (3, 7, '2023-03-25'),
+            (4, 4, '2023-08-15'),
+            (5, 6, '2023-04-10'),
+            (6, 8, '2023-02-28'),
+            (7, 9, '2023-05-20'),
+            (8, 10, '2023-07-25'),
+            (9, 5, '2023-09-05'),
+            (10, 1, '2023-11-02')
+        ''')
+        
+        conn.commit()
+    finally:
+        conn.close()
 
+insert_dummy_data()
 
 # 2. Define Functions for Asset Management
-
 
 def get_connection():
     return pymysql.connect(**connection_parameters)
@@ -78,6 +129,9 @@ def add_license(license_data):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', license_data)
         conn.commit()
+        st.success("License added successfully!")
+    except pymysql.MySQLError as e:
+        st.error(f"Error adding license: {e}")
     finally:
         conn.close()
 
@@ -90,6 +144,9 @@ def assign_license(license_id, user_id):
                 VALUES (%s, %s, %s)
             ''', (license_id, user_id, datetime.now().date()))
         conn.commit()
+        st.success("License assigned successfully!")
+    except pymysql.MySQLError as e:
+        st.error(f"Error assigning license: {e}")
     finally:
         conn.close()
 
@@ -103,8 +160,108 @@ def get_expiring_licenses():
                 WHERE expiration_date < %s
             ''', (today,))
             expiring_licenses = cursor.fetchall()
+    except pymysql.MySQLError as e:
+        st.error(f"Error fetching expiring licenses: {e}")
+        return []
     finally:
         conn.close()
     
     return expiring_licenses
 
+# 3. STREAMLIT APPLICATION WEBPAGE
+
+# Set page title and icon
+icon = Image.open("Image.jpg")
+st.set_page_config(
+    page_title="Software License Management",
+    page_icon=icon,
+    layout="wide"
+)
+
+box_style = """
+    <style>
+        .box {
+            border: 1px solid #3F1209;
+            padding: 1px;
+            border-radius: 1px;
+            background-color: #ffe599;
+        }
+    </style>
+"""
+st.markdown(box_style, unsafe_allow_html=True)
+st.markdown("<div class='box'><h1 style='text-align: center; color:Blue; font-size:35px;'>SOFTWARE LICENCES MANAGEMENT SYSTEM </h1></div>", unsafe_allow_html=True)
+
+def setting_bg(background_image_url):
+    st.markdown(f""" 
+    <style>
+        .stApp {{
+            background: url('{background_image_url}') no-repeat center center fixed;
+            background-size: cover;
+            transition: background 0.5s ease;
+        }}
+        h1, h2, h3, h4, h5, h6 {{
+            color: #f3f3f3;
+            font-family: 'Roboto', sans-serif;
+        }}
+        .stButton>button {{
+            color: #4e4376;
+            background-color: #f3f3f3;
+            transition: all 0.3s ease-in-out;
+        }}
+        .stButton>button:hover {{
+            color: #f3f3f3;
+            background-color: #2b5876;
+        }}
+        .stTextInput>div>div>input {{
+            color: #4e4376;
+            background-color: #f3f3f3;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+# Background image
+background_image_url = "https://t4.ftcdn.net/jpg/05/55/71/83/360_F_555718315_XAi4cgO4s2uBRshlJZ8wXjAWkptX8023.jpg"
+setting_bg(background_image_url)
+
+# Select option for user action
+select = st.selectbox("Choose an option", ["Add New License", "Assign License", "License Expiry Alerts"])
+
+if select == "Add New License":
+    st.header("Add New License")
+    license_key = st.text_input("License Key")
+    software_name = st.text_input("Software Name")
+    license_type = st.selectbox("License Type", ["Single-user", "Multi-user", "Subscription"])
+    purchase_date = st.date_input("Purchase Date")
+    expiration_date = st.date_input("Expiration Date")
+    num_seats = st.number_input("Number of Seats", min_value=1)
+    license_cost = st.number_input("License Cost", min_value=0.0, format="%.2f")
+    vendor_info = st.text_input("Vendor Information")
+    associated_contracts = st.text_input("Associated Contracts")
+    
+    if st.button("Add License"):
+        if expiration_date > purchase_date:
+            add_license((
+                license_key, software_name, license_type, purchase_date, expiration_date, num_seats, license_cost, vendor_info, associated_contracts
+            ))
+        else:
+            st.error("Expiration date must be after purchase date.")
+
+elif select == "Assign License":
+    st.header("Assign License")
+    license_id = st.number_input("License ID", min_value=1)
+    user_id = st.number_input("User ID", min_value=1)
+
+    if st.button("Assign License"):
+        assign_license(license_id, user_id)
+
+elif select == "License Expiry Alerts":
+    # Expiry Alerts
+    st.header("License Expiry Alerts")
+    expiring_licenses = get_expiring_licenses()
+
+    if expiring_licenses:
+        st.write("Expiring Licenses:")
+        for license in expiring_licenses:
+            st.write(f"License ID: {license[0]}, Software Name: {license[2]}, Expiration Date: {license[5]}")
+    else:
+        st.write("No licenses are expiring soon.")
