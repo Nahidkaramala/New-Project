@@ -220,7 +220,7 @@ def setting_bg(background_image_url):
     """, unsafe_allow_html=True)
 
 # Background image
-background_image_url = "https://t4.ftcdn.net/jpg/05/55/71/83/360_F_555718315_XAi4cgO4s2uBRshlJZ8wXjAWkptX8023.jpg"
+background_image_url = "https://t4.ftcdn.net/jpg/04/61/47/03/360_F_461470323_6TMQSkCCs9XQoTtyer8VCsFypxwRiDGU.jpg"
 setting_bg(background_image_url)
 
 # Select option for user action
